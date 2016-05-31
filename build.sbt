@@ -42,12 +42,25 @@ lazy val webapp = crossProject
     )
   )
   .jvmSettings(
+    resolvers ++= Seq(
+      Resolver.bintrayRepo("btomala", "maven"),
+      Resolver.bintrayRepo("hseeberger", "maven")
+    ),
     libraryDependencies ++= Seq(
       "com.typesafe.akka"                  %% "akka-http-experimental" % Version.akka,
       "com.softwaremill.akka-http-session" %% "core"                   % "0.2.6"
+      "btomala"                            %% "akka-http-twirl"        % "1.1.0"
     )
   )
-  
+  .enablePlugins(SbtTwirl)
+
+lazy val compileSass = TaskKey[Unit]("compileSass", "Compile SASS sources")
+
+compileSass := {
+  import sys.process._
+  Seq("sass","webapp/jvm/src/main/scss/main.scss:webapp/jvm/src/main/resources/style/main.css","--sourcemap=none","--style","compressed")!
+}
+
 lazy val webappJS = webapp.js
   .dependsOn(model)
   .settings(

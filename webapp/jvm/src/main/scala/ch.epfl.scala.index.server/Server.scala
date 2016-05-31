@@ -2,6 +2,8 @@ package ch.epfl.scala.index
 package server
 
 import api._
+import ch.epfl.scala.index.model.Artifact.Reference
+import ch.epfl.scala.index.model.Project
 
 import upickle.default.{read => uread}
 
@@ -40,10 +42,11 @@ object Server {
     def reuseSharedApi(userState: Option[UserState]) =
       if(userState.isDefined) new ApiImplementation(github, userState)
       else sharedApi
-    
+
     val route = {
       import akka.http.scaladsl._
       import server.Directives._
+      import akkahttptwirl.TwirlSupport._
 
       post {
         path("autowire" / Segments){ s ⇒
@@ -80,11 +83,11 @@ object Server {
             parameter('code) { code =>
               val userState = Await.result(github.info(code), 10.seconds)
               setSession(refreshable, usingCookies, userState) {
-                setNewCsrfToken(checkHeader) { ctx => 
-                  ctx.complete("ok") 
+                setNewCsrfToken(checkHeader) { ctx =>
+                  ctx.complete("ok")
                 }
               }
-              
+
               // A popup was open for Oauth2
               // We notify the opening window
               // We close the popup
@@ -101,6 +104,15 @@ object Server {
         } ~
         path("project" / Remaining) { _ ⇒
           complete(Template.home)
+        } ~
+        path("poc" / Segment / Segment) { (owner:String, repo: String) =>
+          complete( for {
+              project <- sharedApi.projectPage(Reference(owner, repo))
+              release <- sharedApi.latest(Reference(owner, repo))
+            } yield (project, release) match {
+              case (Some((p, Some(g))), Some(r)) => html.project.render(ProjectDataSet(p, g, r))
+              case _ => html.error.render()
+            })
         }
       }
     }
@@ -112,6 +124,6 @@ object Server {
     Await.result(setup, 20.seconds)
 
     ()
-  } 
+  }
 }
 
