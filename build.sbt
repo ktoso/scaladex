@@ -31,6 +31,14 @@ val commonSettings = Seq(
   version      := "0.1.2"
 )
 
+lazy val template = project
+  .settings(commonSettings: _*)
+  .settings(
+    scalacOptions -= "-Ywarn-unused-import"
+  )
+  .dependsOn(model)
+  .enablePlugins(SbtTwirl)
+
 lazy val webapp = crossProject
   .settings(commonSettings: _*)
   .settings(
@@ -48,11 +56,11 @@ lazy val webapp = crossProject
     ),
     libraryDependencies ++= Seq(
       "com.typesafe.akka"                  %% "akka-http-experimental" % Version.akka,
-      "com.softwaremill.akka-http-session" %% "core"                   % "0.2.6"
+      "com.softwaremill.akka-http-session" %% "core"                   % "0.2.6",
       "btomala"                            %% "akka-http-twirl"        % "1.1.0"
     )
   )
-  .enablePlugins(SbtTwirl)
+  
 
 lazy val compileSass = TaskKey[Unit]("compileSass", "Compile SASS sources")
 
@@ -86,7 +94,7 @@ lazy val webappJS = webapp.js
 
 lazy val webappJVM = webapp.jvm
   .settings(packageScalaJs(webappJS))
-  .dependsOn(model, data)
+  .dependsOn(model, data, template)
 
 lazy val model = project
   .settings(commonSettings: _*)

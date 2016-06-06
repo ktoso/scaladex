@@ -2,8 +2,7 @@ package ch.epfl.scala.index
 package server
 
 import api._
-import ch.epfl.scala.index.model.Artifact.Reference
-import ch.epfl.scala.index.model.Project
+import model.Artifact
 
 import upickle.default.{read => uread}
 
@@ -105,14 +104,12 @@ object Server {
         path("project" / Remaining) { _ ⇒
           complete(Template.home)
         } ~
-        path("poc" / Segment / Segment) { (owner:String, repo: String) =>
-          complete( for {
-              project <- sharedApi.projectPage(Reference(owner, repo))
-              release <- sharedApi.latest(Reference(owner, repo))
-            } yield (project, release) match {
-              case (Some((p, Some(g))), Some(r)) => html.project.render(ProjectDataSet(p, g, r))
-              case _ => html.error.render()
-            })
+        path("poc" / Segment / Segment) { (owner:String, artifactName: String) =>
+          complete(
+            sharedApi.projectPage(Artifact.Reference(owner, artifactName)).map(project =>
+              project.map(p => html.project.render(p))
+            )
+          )
         }
       }
     }
